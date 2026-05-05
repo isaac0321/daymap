@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="DayMap">
+<title>DayMap — Waypoints Church</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --teal: #274A53;
+  --orange: #E27A4B;
+  --yellow: #EDED78;
+  --cream: #F7F6F1;
+  --text: #1C2B2E;
+  --muted: #6B7F83;
+  --border: #E2E8EA;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { font-family: 'Poppins', sans-serif; background: var(--cream); color: var(--text); }
+
+.hdr {
+  background: var(--teal);
+  padding: 12px 20px;
+  padding-top: calc(12px + env(safe-area-inset-top));
+  display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0; z-index: 100;
+}
+.hdr-left { display: flex; align-items: center; gap: 10px; }
+.logo { width: 30px; height: 30px; border: 2px solid rgba(255,255,255,.3); border-radius: 7px; display: flex; align-items: center; justify-content: center; }
+.logo svg { width: 15px; height: 15px; }
+.brand-name { color: #fff; font-size: 13px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.brand-sub { color: rgba(255,255,255,.4); font-size: 9px; letter-spacing: .1em; text-transform: uppercase; }
+.hdr-date { color: rgba(255,255,255,.65); font-size: 11px; font-weight: 500; background: rgba(255,255,255,.1); border-radius: 20px; padding: 4px 12px; border: 1px solid rgba(255,255,255,.15); }
+
+.tabs { background: var(--teal); display: flex; padding: 0 20px; border-bottom: 1px solid rgba(255,255,255,.1); }
+.tab { padding: 10px 14px 8px; font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: rgba(255,255,255,.4); border: none; border-bottom: 2px solid transparent; background: none; cursor: pointer; font-family: 'Poppins', sans-serif; transition: all .2s; }
+.tab.active { color: var(--yellow); border-bottom-color: var(--yellow); }
+
+.panel { display: none; padding: 20px; padding-bottom: calc(90px + env(safe-area-inset-bottom)); }
+.panel.active { display: block; }
+
+.card { background: #fff; border-radius: 14px; padding: 18px; margin-bottom: 14px; border: 1px solid var(--border); box-shadow: 0 1px 3px rgba(0,0,0,.04); }
+.card-label { font-size: 9px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+
+textarea, input[type=time] {
+  width: 100%; border: 1.5px solid var(--border); border-radius: 10px;
+  padding: 12px 14px; font-family: 'Poppins', sans-serif; font-size: 13px;
+  color: var(--text); background: var(--cream); outline: none;
+  transition: border-color .2s; resize: vertical; -webkit-appearance: none;
+}
+textarea:focus, input[type=time]:focus { border-color: var(--teal); background: #fff; }
+textarea::placeholder { color: #aab5b8; }
+.email-area { min-height: 180px; line-height: 1.65; }
+.ctx-area { min-height: 70px; line-height: 1.6; }
+.time-row { display: flex; gap: 10px; }
+.time-col { flex: 1; }
+.time-label { font-size: 10px; font-weight: 600; color: var(--muted); letter-spacing: .07em; text-transform: uppercase; margin-bottom: 5px; }
+input[type=time] { min-height: 44px; }
+
+.chips { display: flex; flex-wrap: wrap; gap: 7px; }
+.chip { padding: 7px 13px; border-radius: 20px; border: 1.5px solid var(--border); font-size: 11px; font-weight: 500; color: var(--muted); cursor: pointer; background: #fff; font-family: 'Poppins', sans-serif; transition: all .15s; }
+.chip.on { background: var(--teal); border-color: var(--teal); color: #fff; }
+
+.btn-wrap {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  padding: 14px 20px;
+  padding-bottom: calc(14px + env(safe-area-inset-bottom));
+  background: #fff; border-top: 1px solid var(--border); z-index: 100;
+}
+.btn {
+  width: 100%; padding: 16px; background: var(--teal); color: #fff;
+  border: none; border-radius: 12px; font-family: 'Poppins', sans-serif;
+  font-size: 15px; font-weight: 700; cursor: pointer; display: flex;
+  align-items: center; justify-content: center; gap: 8px; transition: opacity .2s;
+}
+.btn:disabled { opacity: .5; }
+.btn:active { opacity: .85; }
+
+.err { background: #FEF2F2; border-left: 3px solid #EF4444; border-radius: 0 8px 8px 0; padding: 11px 14px; font-size: 12px; color: #B91C1C; margin-bottom: 14px; display: none; }
+.err.show { display: block; }
+
+.loading { display: none; text-align: center; padding: 60px 20px; }
+.loading.show { display: block; }
+.spinner { width: 44px; height: 44px; border: 3px solid var(--border); border-top-color: var(--teal); border-radius: 50%; animation: spin .8s linear infinite; margin: 0 auto 16px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-title { font-size: 16px; font-weight: 600; color: var(--teal); }
+.loading-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+.empty { text-align: center; padding: 60px 24px; }
+.empty svg { width: 72px; height: 72px; opacity: .12; margin-bottom: 18px; }
+.empty-title { font-size: 17px; font-weight: 600; color: var(--teal); margin-bottom: 6px; }
+.empty-sub { font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+.plan { display: none; }
+.plan.show { display: block; }
+.plan-hdr { background: var(--teal); padding: 18px 20px; display: flex; align-items: center; justify-content: space-between; margin: -20px -20px 20px; }
+.plan-day { color: rgba(255,255,255,.5); font-size: 10px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; margin-bottom: 2px; }
+.plan-title { color: #fff; font-size: 20px; font-weight: 700; }
+.new-btn { background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.2); color: rgba(255,255,255,.7); border-radius: 8px; padding: 7px 13px; font-size: 11px; font-weight: 600; cursor: pointer; font-family: 'Poppins', sans-serif; }
+
+.section-title { font-size: 9px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); margin: 20px 0 8px; padding-left: 12px; border-left: 2px solid var(--border); }
+.block { background: #fff; border-radius: 10px; border-left: 3px solid var(--border); padding: 13px 15px; margin-bottom: 8px; box-shadow: 0 1px 2px rgba(0,0,0,.04); display: flex; gap: 12px; }
+.block.meeting { border-left-color: var(--orange); }
+.block.focus { border-left-color: #5B8DB8; }
+.block.personal { border-left-color: #6BAF92; }
+.block.admin { border-left-color: #B8956B; }
+.block.buffer { border-left-color: #C5B8D4; }
+.block-time { min-width: 68px; font-size: 10px; font-weight: 700; color: var(--muted); line-height: 1.5; flex-shrink: 0; }
+.block-title { font-size: 13px; font-weight: 600; line-height: 1.3; margin-bottom: 2px; }
+.block-note { font-size: 11px; color: var(--muted); line-height: 1.4; }
+.tag { display: inline-block; font-size: 9px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; padding: 2px 7px; border-radius: 4px; margin-top: 5px; }
+.tag-p1 { background: #FEEAEA; color: #D94141; }
+.tag-p2 { background: #FEF3EA; color: #D97A41; }
+.tag-p3 { background: #FEF9EA; color: #C4A030; }
+.tag-p4 { background: #F0F4F5; color: var(--muted); }
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-left">
+    <div class="logo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round">
+        <circle cx="12" cy="12" r="2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>
+        <path d="M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/>
+      </svg>
+    </div>
+    <div><div class="brand-name">Waypoints</div><div class="brand-sub">Church · DayMap</div></div>
+  </div>
+  <div class="hdr-date" id="hdr-date"></div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="showTab('paste',this)">⚡ Smart Paste</button>
+  <button class="tab" onclick="showTab('manual',this)">✎ Manual Entry</button>
+</div>
+
+<!-- SMART PASTE -->
+<div class="panel active" id="tab-paste">
+  <div class="card">
+    <div class="card-label">Morning Briefing Email</div>
+    <textarea class="email-area" id="email-input" placeholder="Paste your DayMap morning briefing email here...
+
+It will extract:
+• Calendar events with times
+• Todoist tasks with priorities
+• Due dates
+
+Then hit Generate ↓"></textarea>
+  </div>
+  <div class="card">
+    <div class="card-label">Work Hours</div>
+    <div class="time-row">
+      <div class="time-col"><div class="time-label">Start</div><input type="time" id="ws" value="08:00"></div>
+      <div class="time-col"><div class="time-label">End</div><input type="time" id="we" value="17:00"></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-label">Extra Context</div>
+    <textarea class="ctx-area" id="ctx" placeholder="Energy level, key deadlines, travel, constraints..."></textarea>
+  </div>
+  <div class="card">
+    <div class="card-label">Work Style</div>
+    <div class="chips">
+      <button class="chip on" onclick="this.classList.toggle('on')" data-v="deep-am">🎯 Deep AM</button>
+      <button class="chip" onclick="this.classList.toggle('on')" data-v="meetings-am">📅 Meetings AM</button>
+      <button class="chip" onclick="this.classList.toggle('on')" data-v="balanced">⚖️ Balanced</button>
+      <button class="chip" onclick="this.classList.toggle('on')" data-v="no-multitask">🚫 No Multitask</button>
+    </div>
+  </div>
+  <div class="err" id="err-paste"></div>
+  <div class="empty" id="empty-paste">
+    <svg viewBox="0 0 100 100" fill="none">
+      <circle cx="50" cy="50" r="45" stroke="#274A53" stroke-width="3"/>
+      <circle cx="50" cy="50" r="6" fill="#274A53"/>
+      <path d="M50 5 L54 44 L50 50 L46 44 Z" fill="#274A53"/>
+      <path d="M95 50 L56 54 L50 50 L56 46 Z" fill="#9CA3AF"/>
+      <path d="M50 95 L46 56 L50 50 L54 56 Z" fill="#9CA3AF"/>
+      <path d="M5 50 L44 46 L50 50 L44 54 Z" fill="#9CA3AF"/>
+    </svg>
+    <div class="empty-title">Your day plan will appear here</div>
+    <div class="empty-sub">Paste your morning email above and hit Generate.</div>
+  </div>
+  <div class="loading" id="loading-paste">
+    <div class="spinner"></div>
+    <div class="loading-title">Mapping your day...</div>
+    <div class="loading-sub">Claude is building your plan</div>
+  </div>
+  <div class="plan" id="plan-paste">
+    <div class="plan-hdr">
+      <div><div class="plan-day" id="plan-date-paste"></div><div class="plan-title">Your Day Plan</div></div>
+      <button class="new-btn" onclick="resetTab('paste')">← New</button>
+    </div>
+    <div id="plan-body-paste"></div>
+  </div>
+</div>
+
+<!-- MANUAL -->
+<div class="panel" id="tab-manual">
+  <div class="card">
+    <div class="card-label">Today's Meetings</div>
+    <textarea class="ctx-area" id="m-meetings" placeholder="9:00am - 9:45am  Sales Meeting&#10;11:30am - 12:00pm  Bookkeeper&#10;2:00pm - 3:00pm  Stretch Lab"></textarea>
+  </div>
+  <div class="card">
+    <div class="card-label">Today's Tasks</div>
+    <textarea class="ctx-area" id="m-tasks" placeholder="[P1] Connect with Delaney Bautista&#10;[P1] Secure pricing on Health Insurance&#10;[P4] Set out items for following day"></textarea>
+  </div>
+  <div class="card">
+    <div class="card-label">Work Hours</div>
+    <div class="time-row">
+      <div class="time-col"><div class="time-label">Start</div><input type="time" id="ms" value="08:00"></div>
+      <div class="time-col"><div class="time-label">End</div><input type="time" id="me" value="17:00"></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-label">Extra Context</div>
+    <textarea class="ctx-area" id="m-ctx" placeholder="Energy level, priorities, travel..."></textarea>
+  </div>
+  <div class="err" id="err-manual"></div>
+  <div class="empty" id="empty-manual">
+    <svg viewBox="0 0 100 100" fill="none">
+      <circle cx="50" cy="50" r="45" stroke="#274A53" stroke-width="3"/>
+      <circle cx="50" cy="50" r="6" fill="#274A53"/>
+      <path d="M50 5 L54 44 L50 50 L46 44 Z" fill="#274A53"/>
+      <path d="M95 50 L56 54 L50 50 L56 46 Z" fill="#9CA3AF"/>
+      <path d="M50 95 L46 56 L50 50 L54 56 Z" fill="#9CA3AF"/>
+      <path d="M5 50 L44 46 L50 50 L44 54 Z" fill="#9CA3AF"/>
+    </svg>
+    <div class="empty-title">Your day plan will appear here</div>
+    <div class="empty-sub">Enter your meetings and tasks above, then hit Generate.</div>
+  </div>
+  <div class="loading" id="loading-manual">
+    <div class="spinner"></div>
+    <div class="loading-title">Mapping your day...</div>
+    <div class="loading-sub">Claude is building your plan</div>
+  </div>
+  <div class="plan" id="plan-manual">
+    <div class="plan-hdr">
+      <div><div class="plan-day" id="plan-date-manual"></div><div class="plan-title">Your Day Plan</div></div>
+      <button class="new-btn" onclick="resetTab('manual')">← New</button>
+    </div>
+    <div id="plan-body-manual"></div>
+  </div>
+</div>
+
+<div class="btn-wrap">
+  <button class="btn" id="main-btn" onclick="handleGenerate()">◎ Generate My Day Plan</button>
+</div>
+
+<script>
+const D = new Date();
+const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const SMON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function today() { return `${DAYS[D.getDay()]}, ${MONTHS[D.getMonth()]} ${D.getDate()}, ${D.getFullYear()}`; }
+document.getElementById('hdr-date').textContent = `${DAYS[D.getDay()].slice(0,3).toUpperCase()}, ${SMON[D.getMonth()]} ${D.getDate()}`;
+
+let currentTab = 'paste';
+
+function showTab(tab, btn) {
+  currentTab = tab;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('tab-' + tab).classList.add('active');
+}
+
+function handleGenerate() {
+  if (currentTab === 'paste') generatePaste();
+  else generateManual();
+}
+
+// Call our own Netlify function proxy — no CORS issues on any device
+async function callClaude(prompt) {
+  const response = await fetch('/.netlify/functions/claude', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-haiku-4-5',
+      max_tokens: 3000,
+      messages: [{ role: 'user', content: prompt }]
+    })
+  });
+
+  if (!response.ok) {
+    const e = await response.json().catch(() => ({}));
+    throw new Error(e.error?.message || `Error ${response.status}`);
+  }
+
+  const data = await response.json();
+  return data.content[0].text;
+}
+
+async function generatePaste() {
+  const email = document.getElementById('email-input').value.trim();
+  if (!email) { showErr('err-paste', 'Please paste your morning briefing email first.'); return; }
+  const ws = document.getElementById('ws').value || '08:00';
+  const we = document.getElementById('we').value || '17:00';
+  const ctx = document.getElementById('ctx').value.trim();
+  const style = [...document.querySelectorAll('#tab-paste .chip.on')].map(c => c.dataset.v).join(', ');
+  setUI('paste', 'loading');
+
+  const prompt = `Today is ${today()}. Work hours: ${ws} to ${we}. Style: ${style || 'balanced'}.${ctx ? ` Notes: ${ctx}` : ''}
+
+Morning briefing email:
+${email}
+
+Create a detailed time-blocked day plan. Rules:
+- Never overlap existing calendar events
+- Prioritize P1 tasks first, then P2, P3, P4
+- Include ~45 min lunch break around noon
+- Add buffer time between back-to-back meetings
+- ${style.includes('deep-am') ? 'Schedule deep focus work early before meetings' : ''}
+- ${style.includes('no-multitask') ? 'One task per block only' : ''}
+
+Return ONLY a valid JSON array, no markdown, no explanation:
+[{"section":"MORNING","time":"8:00 AM","endTime":"9:00 AM","title":"Block title","note":"Short note","type":"focus","priority":"P1"}]
+
+Types: meeting, focus, personal, admin, buffer
+Sections: MORNING, MIDDAY, AFTERNOON, EVENING
+Priority: "P1" "P2" "P3" "P4" or null`;
+
+  try {
+    const res = await callClaude(prompt);
+    const clean = res.replace(/```json\n?/g,'').replace(/```\n?/g,'').trim();
+    const blocks = JSON.parse(clean);
+    renderPlan(blocks, 'paste');
+  } catch(e) {
+    setUI('paste', 'empty');
+    showErr('err-paste', e.message);
+  }
+}
+
+async function generateManual() {
+  const meetings = document.getElementById('m-meetings').value.trim();
+  const tasks = document.getElementById('m-tasks').value.trim();
+  if (!meetings && !tasks) { showErr('err-manual', 'Enter at least your meetings or tasks.'); return; }
+  const ws = document.getElementById('ms').value || '08:00';
+  const we = document.getElementById('me').value || '17:00';
+  const ctx = document.getElementById('m-ctx').value.trim();
+  setUI('manual', 'loading');
+
+  const prompt = `Today is ${today()}. Work: ${ws}–${we}.${ctx ? ` Context: ${ctx}` : ''}
+Meetings: ${meetings || 'None'}
+Tasks (P1=most urgent, P4=lowest): ${tasks || 'None'}
+Return ONLY valid JSON array, no markdown:
+[{"section":"MORNING","time":"8:00 AM","endTime":"9:00 AM","title":"Title","note":"note","type":"focus","priority":"P1"}]
+Types: meeting,focus,personal,admin,buffer. Sections: MORNING,MIDDAY,AFTERNOON,EVENING.`;
+
+  try {
+    const res = await callClaude(prompt);
+    const clean = res.replace(/```json\n?/g,'').replace(/```\n?/g,'').trim();
+    const blocks = JSON.parse(clean);
+    renderPlan(blocks, 'manual');
+  } catch(e) {
+    setUI('manual', 'empty');
+    showErr('err-manual', e.message);
+  }
+}
+
+function renderPlan(blocks, tab) {
+  document.getElementById(`plan-date-${tab}`).textContent = today().toUpperCase();
+  const body = document.getElementById(`plan-body-${tab}`);
+  body.innerHTML = '';
+  const sections = {};
+  for (const b of blocks) {
+    const s = b.section || 'DAY';
+    if (!sections[s]) sections[s] = [];
+    sections[s].push(b);
+  }
+  for (const [name, bks] of Object.entries(sections)) {
+    const st = document.createElement('div');
+    st.className = 'section-title';
+    st.textContent = name;
+    body.appendChild(st);
+    for (const b of bks) {
+      const el = document.createElement('div');
+      el.className = `block ${b.type || ''}`;
+      const tag = b.priority ? `<span class="tag tag-${b.priority.toLowerCase()}">${b.priority}</span>` : '';
+      const timeStr = b.endTime ? `${b.time}<br>${b.endTime}` : b.time;
+      el.innerHTML = `<div class="block-time">${timeStr}</div><div class="block-body"><div class="block-title">${b.title}</div>${b.note ? `<div class="block-note">${b.note}</div>` : ''}${tag}</div>`;
+      body.appendChild(el);
+    }
+  }
+  setUI(tab, 'plan');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function setUI(tab, state) {
+  document.getElementById(`empty-${tab}`).style.display = state === 'empty' ? 'block' : 'none';
+  document.getElementById(`loading-${tab}`).style.display = state === 'loading' ? 'block' : 'none';
+  document.getElementById(`plan-${tab}`).style.display = state === 'plan' ? 'block' : 'none';
+  document.getElementById('main-btn').disabled = state === 'loading';
+}
+
+function resetTab(tab) {
+  document.getElementById(`plan-body-${tab}`).innerHTML = '';
+  setUI(tab, 'empty');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function showErr(id, msg) {
+  const el = document.getElementById(id);
+  el.textContent = 'Error: ' + msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 8000);
+}
+
+setUI('paste', 'empty');
+setUI('manual', 'empty');
+</script>
+</body>
+</html>
